@@ -9,7 +9,7 @@ import httplib
 import datetime
 import os.path
 
-conn = httplib.HTTPConnection("http://img.wordsmotivate.me")
+conn = httplib.HTTPConnection("img.wordsmotivate.me")
 
 def build_list(suffix, start_day=datetime.date(2010,6,20), end_day=datetime.date.today()):
     """
