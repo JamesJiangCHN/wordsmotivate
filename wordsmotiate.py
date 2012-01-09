@@ -5,78 +5,184 @@
 Author Michael Ding <dingyan@freestorm.org>
 """
 
-import urllib
-import os
+import httplib
 import datetime
-import sys
+import os.path
 
-#判断运行参数，如果有参数，则设置为自动运行模式，否则交互模式
-if len(sys.argv) == 2:
-    auto = True
-else:
-    auto = False
+conn = httplib.HTTPConnection("http://img.wordsmotivate.me")
 
-#选择分辨率，自动运行模式下，分辨率由命令行参数指定，交互模式下由用户输入
-resols = {
-        '1':'1920x1080',
-        '2':'1920x1200',
-        '3':'1600x1200'
-        }
+def build_list(suffix, start_day=datetime.date(2010,6,20), end_day=datetime.date.today()):
+    """
+    build path list and filename list
+    """
+    path_list = []
+    filename_list = []
+    delta = datetime.timedelta(days=1)
 
-if auto:
-    choice = str(sys.argv[1])
-else:
-    choice = raw_input('Choose resolution you wish to download:\n1: %s\n2: %s\n3: %s\n' % (resols['1'],resols['2'],resols['3']))
+    d = start_day
+    while d<= end_day:
+        path_list.append("/" + d.strftime("%Y.%m/%Y.%m.%d").replace(".0", ".") + suffix)
+        filename_list.append(d.strftime("%Y.%m.%d").replace(".0", ".") + suffix)
+        d += delta
 
-if not resols.has_key(choice):
-    print "Invalid Choice!\n"
-    sys.exit(0)
+    return {
+            "path_list":path_list,
+            "filename_list":filename_list
+            }
 
-#由选择得分辨率组成url后缀
-urlbase = 'http://img.wordsmotivate.me/'
-urlpostfix = '_%s.jpg' % resols[choice]
+def get_pics(conn, dirname, path_list, filename_list):
+    """
+    get pics according conn, dirname, path_list, filename_list
+    @conn: a httplib.HTTPConnection object
+    @dirname: name of the directory which will store the pictures
+    @path_list: a list of paths of the pictures on the Internet
+    @filename_list: a list of filenames which map to the path_list,
+        and will be used when store the pictures
+    """
+    if len(path_list) != len(filename_list):
+        raise RuntimeError
+    for i in range(len(path_list)):
+        filename = os.path.join(dirname, filename_list[i])
+        path = path_list[i]
+        if not os.path.exists(filename):
+            print "="*15
+            print "Fetching: %s" % path
+            conn.request("GET", path)
+            resp = conn.getresponse()
+            if resp.status == 200:
+                out = open(filename, "wb")
+                out.write(resp.read())
+                print "Successfully saved as %s" % filename
+            else:
+                print """Failed to download.\n
+                Error code:\n%d,
+                Error message:\n%s""" % (resp.status, resp.read())
 
-#设置起始日期位2010年6月21日
-start_day = datetime.date(2011,7,25)
 
-#选择截止日期，自动运行模式下，截止日期为当天，交互模式下由用户输入
-if auto:
-    end_day = datetime.date.today()
-else:
-    day_input = input('Input the end day untill witch you\'d like to fetch the wallpaper:\n(format: \'[year,month,day]\')\n')
-    try:
-        y = int(day_input[0])
-        m = int(day_input[1])
-        d = int(day_input[2])
-        end_day = datetime.date(y,m,d)
-    except:
-        print 'Invalid Date!\n'
-        sys.exit(0)
+if __name__ == "__main__":
+    import sys
+    import argparse
 
-urllist = []
-filenamelist = []
+    res_choices = {
+            1:"1920x1080",
+            2:"1920x1200",
+            3:"1600x1200"
+            }
 
-delta = datetime.timedelta(days=1)
-d = start_day
+    parser = argparse.ArgumentParser(description='Script to download wallpaper from WordsMotivate.me')
+    parser.add_argument("-i", "-interact", action = "store_false", default = True)
+    parser.add_argument("-r","--resols", type = str, default = '1', choices=[1,2,3],
+            help = """choose the resolutions of pictures to be downloaded\n
+            There are three choices:\n
+            '1':'1920x1080',\n
+            '2':'1920x1200',\n
+            '3':'1600x1200'
+            """
+            )
+    parser.add_argument("-d", "--dest", type = str, default = ".",
+            help = """The destination directory to store the downloaded pictures"""
+            )
+    parser.add_argument("-s", "--start", type = int, nargs=3,
+            help = """The start of the range of days to download pictures.\n
+            It can't be earlier than 2010/6/20\n
+            The format of date is "Year" "Month" "Day" seperated with white spaces
+            """
+            )
+    parser.add_argument("-e", "--end", type = int, nargs=3,
+            help = """The end of the range of days to download pictures.\n
+            The format of date is "Year" "Month" "Day" seperated with white spaces
+            """)
+    args = parser.parse_args(sys.argv)
+    kwargs = vars(args)
+    # process args
+    if kwargs["interact"]:
+        # interact mode
+        #choose resolution
+        resols = raw_input('Choose resolution you wish to download:\n1: %s\n2: %s\n3: %s\n Input your choice and press "Enter"' % (res_choices[1],res_choices[2],res_choices[3]))
+        if resols not in res_choices:
+            print "Invalid choice!"
+            sys.exit(1)
 
-#生成Url列表
-while d <= end_day:
-    urllist.append(urlbase + d.strftime("%Y.%m/%Y.%m.%d").replace('.0','.') + urlpostfix)
-    filenamelist.append(d.strftime("%Y.%m.%d").replace('.0','.') + urlpostfix)
-    d += delta
-
-i = 0
-
-#根据Url列表循环下载图片
-for url in urllist:
-    filename = filenamelist[i]
-    if not os.path.exists(filename):
-        print "fetching: %s\nto: %s" % (url, filename)
-        try:
-            urllib.urlretrieve(url,filename)
-        except:
-            print "fetch failed\n"
-            if os.path.exists(filename):
-                os.remove(filename)
+        #choose start day
+        in_d = raw_input("""The start of the range of days to download pictures.\n
+            The format of date is "Year" "Month" "Day" seperated with white spaces\n
+            Note: It can't be earlier than 2010/6/20\n
+            If nothing input, default date is 2010/6/20""")
+        if not in_d:
+            start = datetime.date(2010,6,20)
+        else:
+            if len(in_d) != 3:
+                print "Invalid date"
                 sys.exit(1)
-    i+=1
+            try:
+                y = int(in_d[0])
+                m = int(in_d[1])
+                d = int(in_d[2])
+                start = datetime.date(y,m,d)
+            except ValueError:
+                print "Invalid date"
+                sys.exit(1)
+
+        #choose start day
+        in_d = raw_input("""The end of the range of days to download pictures.\n
+            The format of date is "Year" "Month" "Day" seperated with white spaces\n
+            If nothing input, default date is TODAY""")
+        if not in_d:
+            end = datetime.date.today()
+        else:
+            if len(in_d) != 3:
+                print "Invalid date"
+                sys.exit(1)
+            try:
+                y = int(in_d[0])
+                m = int(in_d[1])
+                d = int(in_d[2])
+                end = datetime.date(y,m,d)
+            except ValueError:
+                print "Invalid date"
+                sys.exit(1)
+
+        #input dest
+        dt = raw_input("""Input the destiny directory where you want to store the pictures.\n
+                Current directory will be used if nothing input""")
+        if not dest:
+            dest = "."
+        else:
+            if os.path.exists(dt) and os.path.isdir(dt):
+                dest = dt
+            else:
+                print "Invalid directory!"
+                sys.exit(1)
+
+    else:
+        resols = kwargs["resols"]
+        dest = kwargs["dest"]
+        if not (os.path.exists(dest) and os.path.isdir(dest)):
+            print "PROG: error: argument --dest/-d: invalid directory"
+        if kwargs["start"]:
+            try:
+                start = datetime.date(*kwargs["start"])
+            except ValueError as e:
+                print "PROG: error: argument --start/-s: %s" % e
+                parser.print_help()
+                sys.exit(1)
+        else:
+            start = datetime.date(2010,6,20)
+        if kwargs["end"]:
+            try:
+                end = datetime.date(*kwargs["end"])
+            except ValueError as e:
+                print "PROG: error: argument --end/-e: %s" % e
+                parser.print_help()
+                sys.exit(1)
+        else:
+            end = datetime.date.today()
+
+    suffix = '_%s.jpg' % res_choices[resols]
+    st = build_list(suffix, start, end)
+    try:
+        get_pics(conn, dest, st["path_list"], st["filename_list"])
+    except RuntimeError:
+        print "Unexpected Error!"
+        sys.exit(1)
+
