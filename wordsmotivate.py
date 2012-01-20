@@ -55,8 +55,7 @@ def get_pics(conn, dirname, path_list, filename_list):
                 print "Successfully saved as %s" % filename
             else:
                 print """Failed to download.\n
-                Error code:\n%d,
-                Error message:\n%s""" % (resp.status, resp.read())
+                Error code:\n%d.""" % resp.status
 
 
 if __name__ == "__main__":
@@ -64,13 +63,13 @@ if __name__ == "__main__":
     import argparse
 
     res_choices = {
-            1:"1920x1080",
-            2:"1920x1200",
-            3:"1600x1200"
+            '1':"1920x1080",
+            '2':"1920x1200",
+            '3':"1600x1200"
             }
 
     parser = argparse.ArgumentParser(description='Script to download wallpaper from WordsMotivate.me')
-    parser.add_argument("-i", "-interact", action = "store_false", default = True)
+    parser.add_argument("-a", "--auto", action = "store_true", default = False)
     parser.add_argument("-r","--resols", type = str, default = '1', choices=[1,2,3],
             help = """choose the resolutions of pictures to be downloaded\n
             There are three choices:\n
@@ -82,23 +81,23 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dest", type = str, default = ".",
             help = """The destination directory to store the downloaded pictures"""
             )
-    parser.add_argument("-s", "--start", type = int, nargs=3,
+    parser.add_argument("-s", "--start", type = int, nargs=3, metavar=("Y", "M", "D"),
             help = """The start of the range of days to download pictures.\n
             It can't be earlier than 2010/6/20\n
             The format of date is "Year" "Month" "Day" seperated with white spaces
             """
             )
-    parser.add_argument("-e", "--end", type = int, nargs=3,
+    parser.add_argument("-e", "--end", type = int, nargs=3, metavar=("Y", "M", "D"),
             help = """The end of the range of days to download pictures.\n
             The format of date is "Year" "Month" "Day" seperated with white spaces
             """)
-    args = parser.parse_args(sys.argv)
+    args = parser.parse_args(sys.argv[1:])
     kwargs = vars(args)
     # process args
-    if kwargs["interact"]:
-        # interact mode
+    if not kwargs["auto"]:
+        # interaction mode
         #choose resolution
-        resols = raw_input('Choose resolution you wish to download:\n1: %s\n2: %s\n3: %s\n Input your choice and press "Enter"' % (res_choices[1],res_choices[2],res_choices[3]))
+        resols = raw_input('Choose resolution you wish to download:\n1: %s\n2: %s\n3: %s\n Input your choice and press "Enter"' % (res_choices['1'],res_choices['2'],res_choices['3']))
         if resols not in res_choices:
             print "Invalid choice!"
             sys.exit(1)
