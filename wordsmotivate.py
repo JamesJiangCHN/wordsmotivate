@@ -69,7 +69,6 @@ if __name__ == "__main__":
             }
 
     parser = argparse.ArgumentParser(description='Script to download wallpaper from WordsMotivate.me')
-    parser.add_argument("-a", "--auto", action = "store_true", default = False)
     parser.add_argument("-r","--resols", type = str, default = '1', choices=[1,2,3],
             help = """choose the resolutions of pictures to be downloaded\n
             There are three choices:\n
@@ -94,88 +93,28 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     kwargs = vars(args)
     # process args
-    if not kwargs["auto"]:
-        # interaction mode
-        #choose resolution
-        resols = raw_input('Choose resolution you wish to download:\n1: %s\n2: %s\n3: %s\n Input your choice and press "Enter"' % (res_choices['1'],res_choices['2'],res_choices['3']))
-        if resols not in res_choices:
-            print "Invalid choice!"
+    resols = kwargs["resols"]
+    dest = kwargs["dest"]
+    if not (os.path.exists(dest) and os.path.isdir(dest)):
+        print "PROG: error: argument --dest/-d: invalid directory"
+    if kwargs["start"]:
+        try:
+            start = datetime.date(*kwargs["start"])
+        except ValueError as e:
+            print "PROG: error: argument --start/-s: %s" % e
+            parser.print_help()
             sys.exit(1)
-
-        #choose start day
-        in_d = raw_input("""The start of the range of days to download pictures.\n
-            The format of date is "Year" "Month" "Day" seperated with white spaces\n
-            Note: It can't be earlier than 2010/6/20\n
-            If nothing input, default date is 2010/6/20""")
-        if not in_d:
-            start = datetime.date(2010,6,20)
-        else:
-            if len(in_d) != 3:
-                print "Invalid date"
-                sys.exit(1)
-            try:
-                y = int(in_d[0])
-                m = int(in_d[1])
-                d = int(in_d[2])
-                start = datetime.date(y,m,d)
-            except ValueError:
-                print "Invalid date"
-                sys.exit(1)
-
-        #choose start day
-        in_d = raw_input("""The end of the range of days to download pictures.\n
-            The format of date is "Year" "Month" "Day" seperated with white spaces\n
-            If nothing input, default date is TODAY""")
-        if not in_d:
-            end = datetime.date.today()
-        else:
-            if len(in_d) != 3:
-                print "Invalid date"
-                sys.exit(1)
-            try:
-                y = int(in_d[0])
-                m = int(in_d[1])
-                d = int(in_d[2])
-                end = datetime.date(y,m,d)
-            except ValueError:
-                print "Invalid date"
-                sys.exit(1)
-
-        #input dest
-        dt = raw_input("""Input the destiny directory where you want to store the pictures.\n
-                Current directory will be used if nothing input""")
-        if not dest:
-            dest = "."
-        else:
-            if os.path.exists(dt) and os.path.isdir(dt):
-                dest = dt
-            else:
-                print "Invalid directory!"
-                sys.exit(1)
-
     else:
-        resols = kwargs["resols"]
-        dest = kwargs["dest"]
-        if not (os.path.exists(dest) and os.path.isdir(dest)):
-            print "PROG: error: argument --dest/-d: invalid directory"
-        if kwargs["start"]:
-            try:
-                start = datetime.date(*kwargs["start"])
-            except ValueError as e:
-                print "PROG: error: argument --start/-s: %s" % e
-                parser.print_help()
-                sys.exit(1)
-        else:
-            start = datetime.date(2010,6,20)
-        if kwargs["end"]:
-            try:
-                end = datetime.date(*kwargs["end"])
-            except ValueError as e:
-                print "PROG: error: argument --end/-e: %s" % e
-                parser.print_help()
-                sys.exit(1)
-        else:
-            end = datetime.date.today()
+        start = datetime.date(2010,6,20)
+    if kwargs["end"]:
+        try:
+            end = datetime.date(*kwargs["end"])
+        except ValueError as e:
+            print "PROG: error: argument --end/-e: %s" % e
+            parser.print_help()
+            sys.exit(1)
+    else:
+        end = datetime.date.today()
 
     suffix = '_%s.jpg' % res_choices[resols]
     st = build_list(suffix, start, end)
