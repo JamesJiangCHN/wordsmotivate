@@ -8,8 +8,12 @@ Author Michael Ding <dingyan@freestorm.org>
 import httplib
 import datetime
 import os.path
+import sys
 
 conn = httplib.HTTPConnection("img.wordsmotivate.me")
+
+def logging_err(content, log_file):
+    log_file.write(content)
 
 def build_list(suffix, start_day=datetime.date(2010,6,20), end_day=datetime.date.today()):
     """
@@ -30,7 +34,7 @@ def build_list(suffix, start_day=datetime.date(2010,6,20), end_day=datetime.date
             "filename_list":filename_list
             }
 
-def get_pics(conn, dirname, path_list, filename_list):
+def get_pics(conn, dirname, path_list, filename_list, log_file = sys.stderr):
     """
     get pics according conn, dirname, path_list, filename_list
     @conn: a httplib.HTTPConnection object
@@ -52,14 +56,16 @@ def get_pics(conn, dirname, path_list, filename_list):
             if resp.status == 200:
                 out = open(filename, "wb")
                 out.write(resp.read())
+                out.close()
                 print "Successfully saved as %s" % filename
             else:
                 print """Failed to download.\n
                 Error code:\n%d.""" % resp.status
+                logging_err("Failed to download %s" % path, log_file)
+                logging_err(resp.read(), log_file)
 
 
 if __name__ == "__main__":
-    import sys
     import argparse
 
     res_choices = {
@@ -69,7 +75,7 @@ if __name__ == "__main__":
             }
 
     parser = argparse.ArgumentParser(description='Script to download wallpaper from WordsMotivate.me')
-    parser.add_argument("-r","--resols", type = str, default = '1', choices=[1,2,3],
+    parser.add_argument("-r","--resols", type = str, default = '1', choices=['1','2','3'],
             help = """choose the resolutions of pictures to be downloaded\n
             There are three choices:\n
             '1':'1920x1080',\n
@@ -95,6 +101,8 @@ if __name__ == "__main__":
     # process args
     resols = kwargs["resols"]
     dest = kwargs["dest"]
+    log_file = open(os.path.join(dest,"failed.log"),"w")
+
     if not (os.path.exists(dest) and os.path.isdir(dest)):
         print "PROG: error: argument --dest/-d: invalid directory"
     if kwargs["start"]:
@@ -119,8 +127,9 @@ if __name__ == "__main__":
     suffix = '_%s.jpg' % res_choices[resols]
     st = build_list(suffix, start, end)
     try:
-        get_pics(conn, dest, st["path_list"], st["filename_list"])
+        get_pics(conn, dest, st["path_list"], st["filename_list"], log_file)
     except RuntimeError:
         print "Unexpected Error!"
         sys.exit(1)
+    log_file.close()
 
