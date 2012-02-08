@@ -111,6 +111,7 @@ if __name__ == "__main__":
         except ValueError as e:
             print "PROG: error: argument --start/-s: %s" % e
             parser.print_help()
+            log_file.close()
             sys.exit(1)
     else:
         start = datetime.date(2010,6,20)
@@ -120,6 +121,7 @@ if __name__ == "__main__":
         except ValueError as e:
             print "PROG: error: argument --end/-e: %s" % e
             parser.print_help()
+            log_file.close()
             sys.exit(1)
     else:
         end = datetime.date.today()
@@ -130,6 +132,7 @@ if __name__ == "__main__":
         get_pics(conn, dest, st["path_list"], st["filename_list"], log_file)
     except RuntimeError:
         print "Unexpected Error!"
+        log_file.close()
         sys.exit(1)
     log_file.close()
 
